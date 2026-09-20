@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>电商用户行为数仓项目 · 保姆级教程</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f6fb;color:#2c3e50;line-height:1.8;padding-bottom:60px}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:22px;color:#1a73e8;text-align:center;margin:20px 0 8px}
+.sub{text-align:center;color:#888;font-size:13px;margin-bottom:24px}
+h2{font-size:18px;color:#1a73e8;margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8eef9}
+h3{font-size:16px;color:#34a853;margin:20px 0 10px}
+h4{font-size:15px;color:#fbbc04;margin:16px 0 8px}
+p{margin:10px 0;font-size:14px}
+ul,ol{margin:10px 0 10px 24px;font-size:14px}
+li{margin:4px 0}
+code{background:#eef2ff;color:#1a73e8;padding:2px 6px;border-radius:4px;font-size:13px;font-family:Consolas,monospace}
+pre{background:#1e293b;color:#e2e8f0;padding:14px;border-radius:8px;overflow-x:auto;font-size:12.5px;line-height:1.6;margin:10px 0;white-space:pre;word-break:normal}
+pre code{background:none;color:#e2e8f0;padding:0;font-size:12.5px}
+.card{background:#fff;border-radius:10px;padding:14px 16px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tip{background:#fff8e1;border-left:4px solid #fbbc04;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px}
+.warn{background:#ffebee;border-left:4px solid #ea4335;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px}
+.good{background:#e8f5e9;border-left:4px solid #34a853;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px}
+.note{background:#e3f2fd;border-left:4px solid #1a73e8;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;background:#fff;border-radius:8px;overflow:hidden}
+th{background:#1a73e8;color:#fff;padding:8px;text-align:left}
+td{padding:8px;border-bottom:1px solid #eee}
+tr:nth-child(even) td{background:#f8faff}
+.nav{position:sticky;top:0;background:rgba(26,115,232,.95);color:#fff;padding:10px;z-index:100;border-radius:0 0 8px 8px}
+.nav select{width:100%;padding:8px;border-radius:6px;border:none;font-size:14px;background:#fff;color:#1a73e8;font-weight:bold}
+.step{display:inline-block;background:#1a73e8;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;margin-right:6px}
+.kbd{background:#455a64;color:#fff;padding:1px 7px;border-radius:4px;font-size:12px;font-family:monospace}
+.flow{background:#fff;border-radius:10px;padding:16px;margin:12px 0;text-align:center;font-size:13px;line-height:2}
+.flow span{display:inline-block;background:#1a73e8;color:#fff;padding:6px 12px;border-radius:20px;margin:3px}
+.arrow{color:#999;margin:0 4px}
+@media(max-width:600px){
+  h1{font-size:19px}
+  h2{font-size:16px}
+  h3{font-size:15px}
+  p,li{font-size:13px}
+  pre{font-size:11.5px}
+  .wrap{padding:10px}
+}
+</style>
+</head>
+<body>
+<div class="nav">
+<select onchange="if(this.value)location.hash=this.value">
+<option value="">📚 快速跳到章节…</option>
+<option value="#concept">① 概念扫盲（先看这个）</option>
+<option value="#day1">Day1 环境与数据</option>
+<option value="#day2">Day2 ODS 原始层</option>
+<option value="#day3">Day3 DWD 明细层</option>
+<option value="#day4">Day4 DWS 汇总层</option>
+<option value="#day5">Day5 ADS 漏斗分析</option>
+<option value="#day6">Day6 ADS RFM 分层</option>
+<option value="#day7">Day7 ADS 其他分析</option>
+<option value="#day8">Day8 可视化</option>
+<option value="#interview">面试话术速查</option>
+<option value="#faq">报错排查</option>
+</select>
+</div>
+<div class="wrap">
+
+<h1>电商用户行为数仓项目 · 保姆级教程</h1>
+<p class="sub">从 0 到 1 搭一个能写进简历的电商数据仓库 | 手机/电脑都能看</p>
+
+<!-- ============================ 概念篇 ============================ -->
+<h2 id="concept">① 概念扫盲（建议先看，不然跑了也不知道在干啥）</h2>
+
+<div class="card">
+<h3>🎯 这个项目到底在做什么？</h3>
+<p>一句话：<b>把淘宝用户的点击/收藏/加购/购买记录，加工成老板能看懂的分析结论</b>。</p>
+<p>比如："整体转化率 24%""重要价值客户占 25.5%""晚上 8 点最活跃"——这些结论不是凭空来的，是从 50 万行原始数据一层层加工出来的。</p>
+</div>
+
+<div class="card">
+<h3>📦 什么是数据仓库？为什么要分层？</h3>
+<p>想象你开了一家餐厅：</p>
+<ul>
+<li><b>买菜（ODS）</b>：从菜市场买回来的原材料，带着泥，不能直接上桌</li>
+<li><b>洗菜切菜（DWD）</b>：把泥洗掉，切成能用的形状，但还是生的</li>
+<li><b>配菜（DWS）</b>：把要炒同一道菜的食材放一起，炒的时候直接拿</li>
+<li><b>炒菜装盘（ADS）</b>：端给客人吃的成品菜</li>
+</ul>
+<p><b>为什么不直接从原始数据炒？</b>因为每次都从 50 万行原始数据里算，又慢又容易算错。分层后，"洗菜切菜"只做一次，后面所有菜都能复用，而且口径统一。</p>
+</div>
+
+<div class="card">
+<h3>🧱 四层架构一图看懂</h3>
+<div class="flow">
+<span>ODS 原始层</span><span class="arrow">→</span><span>DWD 明细层</span><span class="arrow">→</span><span>DWS 汇总层</span><span class="arrow">→</span><span>ADS 应用层</span><br>
+<small style="color:#888">原始日志 → 清洗去重 → 按天/人聚合 → 漏斗/RFM等分析结果</small>
+</div>
+<table>
+<tr><th>层</th><th>作用</th><th>本项目的表</th></tr>
+<tr><td>ODS</td><td>原样存原始数据，不加工</td><td>ods_user_behavior（50万行）</td></tr>
+<tr><td>DWD</td><td>清洗+拆出日期/小时等维度，还是一行一个行为</td><td>dwd_user_behavior（~50万行）</td></tr>
+<tr><td>DWS</td><td>按用户/商品/天聚合，行数变少</td><td>dws_user_day / dws_item_day / dws_user_summary</td></tr>
+<tr><td>ADS</td><td>直接出分析结果，给业务看的</td><td>漏斗表 / RFM分群表 / 活跃表</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>📖 名词大白话解释</h3>
+<table>
+<tr><th>名词</th><th>大白话</th></tr>
+<tr><td><b>UV</b></td><td>独立访客数，<b>去重后的人数</b>。1万人各点1次=1万UV；1人点1万次=1UV</td></tr>
+<tr><td><b>PV</b></td><td>页面浏览量，<b>点击总次数</b>。1人点1万次=1万PV</td></tr>
+<tr><td><b>转化漏斗</b></td><td>用户从"看"到"买"逐步流失的过程，像漏斗一样越往下人越少</td></tr>
+<tr><td><b>RFM</b></td><td>衡量用户价值的三个维度：R最近买过没、F买了多少次、M花了多少钱</td></tr>
+<tr><td><b>维度退化</b></td><td>把"日期""小时"这种本来要算的字段，提前算好塞进表里，用的时候直接取</td></tr>
+<tr><td><b>宽表</b></td><td>把一个用户的所有指标（浏览数、购买数、首购日…）摊平成一行很多列</td></tr>
+<tr><td><b>粒度</b></td><td>表的每一行代表什么。比如"用户-日"粒度=每个用户每天一行</td></tr>
+<tr><td><b>CTAS</b></td><td>CREATE TABLE AS SELECT 的缩写，用查询结果直接建表</td></tr>
+<tr><td><b>索引</b></td><td>书的目录，加了索引查特定行更快，但会占空间、拖慢写入</td></tr>
+</table>
+</div>
+
+<!-- ============================ Day1 ============================ -->
+<h2 id="day1">Day1 · 环境准备 + 拿到数据</h2>
+
+<div class="card">
+<h3>你需要装好的东西</h3>
+<ul>
+<li><b>MySQL</b>：你已经装好了（之前学 SQL 时装的）</li>
+<li><b>DBeaver</b>：你已经装好了，图形化操作数据库</li>
+<li><b>Python</b>：你已经装好了</li>
+<li><b>pymysql</b>：Python 连 MySQL 的库</li>
+<li><b>pyecharts</b>：Python 画交互图表的库</li>
+</ul>
+<div class="note">装库命令（PowerShell 里跑）：<br>
+<code>python -m pip install pymysql pyecharts -i https://pypi.tuna.tsinghua.edu.cn/simple</code></div>
+</div>
+
+<div class="card">
+<h3>数据怎么来？</h3>
+<p>两种方式，<b>选一种就行</b>：</p>
+<p><b>A. 用现成的模拟数据（推荐，30秒搞定）</b></p>
+<p>你的 <code>data/UserBehavior.csv</code> 已经有 50 万行模拟数据了（之前脚本生成的）。格式和真实天池数据完全一样，所有 SQL 通用。</p>
+<p><b>B. 自己生成（如果 data 文件夹空了）</b></p>
+<pre><code>cd C:\Users\wut98\Desktop\ecommerce-dw
+python scripts/gen_mock_data.py</code></pre>
+<div class="tip">真实天池数据有 1 亿行（900MB），<b>没必要</b>。模拟数据跑出来的分析逻辑完全一样，面试不看数据来源，看你会不会分析。</div>
+</div>
+
+<div class="card">
+<h3>gen_mock_data.py 这段代码在干嘛？</h3>
+<p>它用 Python 的 random 模块造数据，核心逻辑：</p>
+<ul>
+<li><code>N_USERS=10000</code>：造 1 万个用户</li>
+<li><code>BEHAVIORS = ['pv']*85 + ['fav']*5 + ['cart']*6 + ['buy']*4</code>：行为概率，浏览占 85%，购买只占 4%，贴近真实分布</li>
+<li><code>hot_users</code>：15% 的用户被设为"高价值用户"，更容易购买——这样 RFM 分层才会有明显差异，不然大家都一样</li>
+<li>每行输出：<code>用户ID, 商品ID, 类目ID, 行为类型, 时间戳</code></li>
+</ul>
+</div>
+
+<!-- ============================ Day2 ODS ============================ -->
+<h2 id="day2">Day2 · ODS 原始数据层（建库建表 + 导入）</h2>
+
+<div class="card">
+<h3>第一步：在 DBeaver 里建库建表</h3>
+<p>打开 <code>sql/01_create_ods.sql</code>，全选 → <span class="kbd">Ctrl+Enter</span> 执行。</p>
+<p>然后左边数据库列表刷新，应该出现 <code>ecommerce_dw</code> 数据库。</p>
+</div>
+
+<div class="card">
+<h3>01_create_ods.sql 逐段解释</h3>
+
+<h4>① 建库</h4>
+<pre><code>CREATE DATABASE IF NOT EXISTS ecommerce_dw
+DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;</code></pre>
+<ul>
+<li><code>CREATE DATABASE</code>：创建数据库（相当于建一个文件夹装表）</li>
+<li><code>IF NOT EXISTS</code>：如果已存在就不报错，保证脚本能重复跑</li>
+<li><code>utf8mb4</code>：字符集，<b>必须用这个</b>，才能存中文和 emoji（普通 utf8 存不了 emoji）</li>
+</ul>
+
+<h4>② 切换到这个库</h4>
+<pre><code>USE ecommerce_dw;</code></pre>
+<p>告诉 MySQL 接下来的操作都在这个库里执行，不然它不知道往哪建表。</p>
+
+<h4>③ 删旧表（可选但推荐）</h4>
+<pre><code>DROP TABLE IF EXISTS ods_user_behavior;</code></pre>
+<p>如果这张表已经存在就先删掉。<b>为什么要删？</b>因为 CREATE TABLE 不能建已存在的表，会报错。学习阶段数据不重要，删掉重建最干净。</p>
+
+<h4>④ 建 ODS 表（核心）</h4>
+<pre><code>CREATE TABLE ods_user_behavior (
+    user_id       INT          NOT NULL COMMENT '用户ID',
+    item_id       INT          NOT NULL COMMENT '商品ID',
+    category_id   INT          NOT NULL COMMENT '商品类目ID',
+    behavior_type VARCHAR(10)  NOT NULL COMMENT 'pv浏览/fav收藏/cart加购/buy购买',
+    behavior_time DATETIME     NOT NULL COMMENT '行为发生时间',
+    KEY idx_user (user_id),
+    KEY idx_item (item_id),
+    KEY idx_time (behavior_time),
+    KEY idx_type (behavior_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='ODS层-淘宝用户行为原始表';</code></pre>
+<p>逐列解释：</p>
+<table>
+<tr><th>字段</th><th>类型</th><th>为什么是这个类型</th></tr>
+<tr><td>user_id</td><td>INT</td><td>用户ID是整数，INT 存 -21亿~21亿，够用</td></tr>
+<tr><td>item_id</td><td>INT</td><td>商品ID也是整数</td></tr>
+<tr><td>category_id</td><td>INT</td><td>类目ID</td></tr>
+<tr><td>behavior_type</td><td>VARCHAR(10)</td><td>行为是字符串（pv/fav/cart/buy），最长4个字符，给10足够</td></tr>
+<tr><td>behavior_time</td><td>DATETIME</td><td>时间，精确到秒，格式 '2017-11-25 10:30:00'</td></tr>
+</table>
+<p><code>NOT NULL</code>：这一列不允许空值，保证数据质量。</p>
+<p><code>COMMENT</code>：给字段加注释，别人看表结构时知道这列啥意思。<b>好习惯，面试加分</b>。</p>
+<p><code>KEY idx_user (user_id)</code>：给 user_id 加索引。<b>为什么加？</b>后面要按用户查数据，没索引的话 50 万行全表扫描会很慢。索引=书的目录。</p>
+<p><code>ENGINE=InnoDB</code>：MySQL 的存储引擎，支持事务和外键，默认就行。</p>
+</div>
+
+<div class="card">
+<h3>第二步：用 Python 把 CSV 数据导入 MySQL</h3>
+<p>改密码：记事本打开 <code>scripts/load_data.py</code>，把第 28 行的 <code>'改成你的MySQL密码'</code> 换成你自己的密码。</p>
+<p>然后 PowerShell 跑：</p>
+<pre><code>cd C:\Users\wut98\Desktop\ecommerce-dw
+python scripts/load_data.py</code></pre>
+<p>看到「导入完成，共 500,000 行」就成功了。</p>
+</div>
+
+<div class="card">
+<h3>load_data.py 核心逻辑解释</h3>
+<pre><code>import pymysql
+conn = pymysql.connect(host='localhost', user='root', password='你的密码', database='ecommerce_dw')
+cursor = conn.cursor()</code></pre>
+<p>这三行：<b>连上 MySQL 数据库</b>。pymysql 就像一座桥，让 Python 能和 MySQL 说话。</p>
+
+<pre><code>cursor.execute('TRUNCATE TABLE ods_user_behavior')</code></pre>
+<p><code>TRUNCATE</code>：清空表。保证重复跑脚本时不会重复导入。</p>
+
+<pre><code>BATCH_SIZE = 5000
+for row in reader:
+    batch.append(...)
+    if len(batch) >= BATCH_SIZE:
+        cursor.executemany(INSERT_SQL, batch)
+        conn.commit()</code></pre>
+<p><b>批量插入优化</b>：不是一行一行插，而是攒满 5000 行一次性插。<b>为什么？</b>一行一插要和数据库通信 50 万次，批量只需要 100 次，<b>速度差几十倍</b>。</p>
+
+<pre><code>cursor.executemany(INSERT_SQL, batch)</code></pre>
+<p><code>executemany</code>：一条 SQL 模板，批量执行多次。<code>%s</code> 是占位符，pymysql 会自动把 batch 里的数据填进去，还能防止 SQL 注入。</p>
+</div>
+
+<!-- ============================ Day3 DWD ============================ -->
+<h2 id="day3">Day3 · DWD 明细层（清洗 + 维度退化）</h2>
+
+<div class="card">
+<h3>这一步在干嘛？</h3>
+<p>ODS 里的数据是"生的"——时间戳是一坨数字，要算"星期几"还得每次写函数。DWD 层把这些<b>提前算好</b>，变成干净好用的明细数据。</p>
+<p>打开 <code>sql/02_dwd.sql</code>，全选执行。</p>
+</div>
+
+<div class="card">
+<h3>02_dwd.sql 核心解释</h3>
+
+<h4>建 DWD 表时多了哪些字段？</h4>
+<pre><code>dt          DATE        -- 行为日期，如 2017-11-25
+hr          TINYINT     -- 小时，0-23
+weekday_cn  VARCHAR(8)  -- 星期几，中文
+is_weekend  TINYINT     -- 是否周末，1是0否</code></pre>
+<p>这 4 个字段就是<b>维度退化</b>的产物——从 behavior_time 一个时间戳里拆出来的。以后查"周末的购买量"直接 <code>WHERE is_weekend=1</code>，不用每次写 <code>DAYOFWEEK()</code>。</p>
+
+<h4>清洗+灌入的 SQL</h4>
+<pre><code>INSERT INTO dwd_user_behavior
+SELECT
+    user_id, item_id, category_id, behavior_type, behavior_time,
+    DATE(behavior_time)              AS dt,          -- 截取日期部分
+    HOUR(behavior_time)              AS hr,          -- 取小时
+    CASE DAYOFWEEK(behavior_time)                      -- 把数字1-7转成中文星期
+        WHEN 1 THEN '星期日' ...
+    END                              AS weekday_cn,
+    CASE WHEN DAYOFWEEK(behavior_time) IN (1,7)
+         THEN 1 ELSE 0 END          AS is_weekend
+FROM ods_user_behavior
+WHERE behavior_type IN ('pv','fav','cart','buy')   -- 过滤非法行为
+  AND behavior_time IS NOT NULL;                     -- 过滤空时间</code></pre>
+<p><b>清洗逻辑</b>：</p>
+<ul>
+<li><code>WHERE behavior_type IN (...)</code>：只保留四种合法行为，把脏数据（比如拼错的 'pvv'）过滤掉</li>
+<li><code>AND behavior_time IS NOT NULL</code>：时间为空的行丢掉</li>
+</ul>
+<p><b>加工逻辑（维度退化）</b>：</p>
+<ul>
+<li><code>DATE(behavior_time)</code>：从 '2017-11-25 10:30:00' 取出 '2017-11-25'</li>
+<li><code>HOUR(behavior_time)</code>：取出 10</li>
+<li><code>CASE WHEN ... THEN ... END</code>：MySQL 的 if-else，把 DAYOFWEEK 返回的 1（周日）~7（周六）翻译成中文</li>
+</ul>
+<div class="note"><b>面试话术</b>："DWD 层主要做三件事：数据清洗（去脏去重）、字段规范化（统一命名和格式）、维度退化（把常用维度提前算好存进事实表，用空间换时间）。"</div>
+</div>
+
+<!-- ============================ Day4 DWS ============================ -->
+<h2 id="day4">Day4 · DWS 汇总层（聚合，数据变少）</h2>
+
+<div class="card">
+<h3>这一步在干嘛？</h3>
+<p>DWD 还是 50 万行（一行一个行为），直接在上面做分析太慢。DWS 把数据<b>按主题聚合</b>，行数大幅减少，后面所有分析都从这里取数。</p>
+<p>打开 <code>sql/03_dws.sql</code>，全选执行。</p>
+</div>
+
+<div class="card">
+<h3>03_dws.sql 核心解释</h3>
+
+<h4>表1：dws_user_day（用户-日 粒度）</h4>
+<pre><code>CREATE TABLE dws_user_day AS
+SELECT
+    user_id, dt,
+    SUM(behavior_type = 'pv')   AS pv_cnt,    -- 当天浏览次数
+    SUM(behavior_type = 'fav')  AS fav_cnt,   -- 当天收藏次数
+    SUM(behavior_type = 'cart') AS cart_cnt,  -- 当天加购次数
+    SUM(behavior_type = 'buy')  AS buy_cnt,   -- 当天购买次数
+    COUNT(*)                    AS total_cnt  -- 当天总行为数
+FROM dwd_user_behavior
+GROUP BY user_id, dt;</code></pre>
+<p><b>关键技巧 <code>SUM(behavior_type = 'pv')</code></b>：</p>
+<p>MySQL 里，条件表达式 <code>behavior_type = 'pv'</code> 的结果是 1（真）或 0（假）。对它求和，就等于数有多少行满足条件。等价于 <code>SUM(CASE WHEN behavior_type='pv' THEN 1 ELSE 0 END)</code>，但更简洁。</p>
+<p><b>粒度</b>：<code>GROUP BY user_id, dt</code> 表示每个用户每天一行。50万行明细 → 约 8 万行汇总（1万用户 × 9天，但不是每个用户每天都活跃）。</p>
+
+<h4>表3：dws_user_summary（用户生命周期宽表）</h4>
+<pre><code>CREATE TABLE dws_user_summary AS
+SELECT
+    user_id,
+    MIN(dt)              AS first_dt,      -- 首次活跃日
+    MAX(dt)              AS last_dt,       -- 最近活跃日
+    COUNT(DISTINCT dt)   AS active_days,   -- 活跃天数
+    SUM(behavior_type='pv')  AS total_pv,  -- 累计浏览
+    ...
+    MIN(CASE WHEN behavior_type='buy' THEN dt END) AS first_buy_dt  -- 首购日
+FROM dwd_user_behavior
+GROUP BY user_id;</code></pre>
+<p><b>什么是宽表？</b>把一个用户的所有指标都摊平成一行。这张表每个用户一行，后面 RFM、留存分析都直接从这取，不用再扫 50 万行。</p>
+<p><code>MIN(CASE WHEN behavior_type='buy' THEN dt END)</code>：只在购买行为里取最小日期，就是首购日。如果用户没买过，结果是 NULL。</p>
+</div>
+
+<!-- ============================ Day5 ADS 漏斗 ============================ -->
+<h2 id="day5">Day5 · ADS 应用层①：转化漏斗分析</h2>
+
+<div class="card">
+<h3>什么是转化漏斗？</h3>
+<p>电商用户的典型路径：<b>浏览 → 收藏/加购 → 购买</b>。每一步都会有人流失，像漏斗一样越来越窄。我们要算每一步的<b>转化率</b>，找出哪里流失最严重。</p>
+<p>打开 <code>sql/04_ads_funnel.sql</code>，全选执行。</p>
+</div>
+
+<div class="card">
+<h3>04_ads_funnel.sql 核心解释</h3>
+
+<pre><code>CREATE TABLE ads_funnel_overall AS
+SELECT
+    COUNT(DISTINCT CASE WHEN behavior_type='pv' THEN user_id END) AS uv_pv,
+    COUNT(DISTINCT CASE WHEN behavior_type IN ('fav','cart') THEN user_id END) AS uv_fav_cart,
+    COUNT(DISTINCT CASE WHEN behavior_type='buy' THEN user_id END) AS uv_buy
+FROM dwd_user_behavior;</code></pre>
+
+<h4>🔑 为什么用 COUNT(DISTINCT ...)？</h4>
+<p><code>COUNT(DISTINCT user_id)</code> = 去重后的用户数 = UV。</p>
+<p>如果用 <code>COUNT(*)</code>，那是行为次数（PV）。一个用户刷 100 次页面，PV 会虚高 100 倍。<b>业务关心的是"多少人"完成了转化，所以必须用 UV</b>。</p>
+
+<h4>🔑 为什么把 fav 和 cart 合并？</h4>
+<p>收藏和加购都是"有购买意向"的行为。很多用户只收藏不加购，或只加购不收藏，拆开看会漏掉一批意向用户。合并后更贴近"意向漏斗"的本意。</p>
+<p><b>面试加分</b>：主动说"我也可以拆成 pv→fav→cart→buy 四级漏斗，看业务需要哪种口径"。</p>
+
+<h4>转化率怎么算？</h4>
+<pre><code>uv_fav_cart * 10000 / uv_pv / 100  AS 浏览到加购转化率</code></pre>
+<p>先 ×10000 再 ÷100，等价于 ×100，但<b>避免了浮点精度问题</b>（直接 ×100 可能出现 23.99999999 这种脏数）。</p>
+</div>
+
+<!-- ============================ Day6 RFM ============================ -->
+<h2 id="day6">Day6 · ADS 应用层②：RFM 用户价值分层</h2>
+
+<div class="card">
+<h3>RFM 是什么？</h3>
+<p>衡量用户价值的三个维度：</p>
+<table>
+<tr><th>字母</th><th>含义</th><th>怎么算</th><th>越大越好？</th></tr>
+<tr><td><b>R</b>ecency</td><td>最近一次购买距今多少天</td><td>参照日 - 最后购买日</td><td>越小越好（最近买过）</td></tr>
+<tr><td><b>F</b>requency</td><td>购买频次</td><td>统计周期内购买次数</td><td>越大越好</td></tr>
+<tr><td><b>M</b>onetary</td><td>消费金额</td><td>累计消费金额</td><td>越大越好</td></tr>
+</table>
+<div class="warn"><b>本项目没有 M</b>：数据集只有行为没有金额，所以只做 R+F 二维分层。面试时<b>主动说这个数据局限</b>，比假装算了 M 强 100 倍。</div>
+</div>
+
+<div class="card">
+<h3>05_ads_rfm.sql 分步解释</h3>
+
+<h4>第一步：定参照日</h4>
+<pre><code>SET @ref_date = (
+    SELECT DATE_ADD(MAX(behavior_time), INTERVAL 1 DAY)
+    FROM dwd_user_behavior WHERE behavior_type = 'buy'
+);</code></pre>
+<p><b>为什么不用今天的日期？</b>数据是 2017 年的，用今天算 R，所有人都是 3000+ 天，全错。参照日要取数据集最后一天的次日，<b>回到业务当时的语境</b>。</p>
+
+<h4>第二步：算每个用户的 R 和 F</h4>
+<pre><code>CREATE TABLE ads_rfm_detail AS
+SELECT
+    user_id,
+    DATEDIFF(@ref_date, MAX(CASE WHEN behavior_type='buy' THEN behavior_time END)) AS recency,
+    COUNT(CASE WHEN behavior_type='buy' THEN 1 END) AS frequency
+FROM dwd_user_behavior
+GROUP BY user_id
+HAVING frequency > 0;</code></pre>
+<ul>
+<li><code>DATEDIFF(a, b)</code>：算两个日期差几天。参照日 - 最后购买日 = 距今天数</li>
+<li><code>HAVING frequency > 0</code>：只给买过的用户分层。没买过的用户属于另一类（潜在用户），不在 RFM 范围内</li>
+</ul>
+
+<h4>第三步：用 NTILE(5) 打分</h4>
+<pre><code>6 - NTILE(5) OVER (ORDER BY recency)   AS r_score,
+NTILE(5)     OVER (ORDER BY frequency) AS f_score</code></pre>
+<p><b>NTILE(5)</b>：窗口函数，把排序后的数据<b>尽量平均分成 5 组</b>，每组给 1~5 的编号。</p>
+<p><code>ORDER BY recency</code>（R 升序，最近的在前）：NTILE 给第 1 组（最近的）编号 1，但最近的应该得高分 5，所以用 <code>6 - 编号</code> 翻转一下。</p>
+<p><code>ORDER BY frequency</code>（F 升序，最少的在前）：编号 5 就是买得最多的，直接用。</p>
+
+<h4>第四步：分群</h4>
+<pre><code>CASE
+    WHEN r_score >= 4 AND f_score >= 4 THEN '重要价值客户'  -- R高+F高
+    WHEN r_score >= 4 AND f_score <  4 THEN '重要发展客户'  -- R高+F低（最近活跃但买得少）
+    WHEN r_score <  4 AND f_score >= 4 THEN '重要保持客户'  -- R低+F高（曾经高频但很久没来了）
+    ELSE '一般挽留客户'
+END AS segment</code></pre>
+<p>分群逻辑和运营策略：</p>
+<table>
+<tr><th>分群</th><th>特征</th><th>运营策略</th></tr>
+<tr><td>重要价值客户</td><td>最近常来+买得多</td><td>VIP权益、新品首发、专属客服</td></tr>
+<tr><td>重要发展客户</td><td>最近常来但买得少</td><td>发优惠券、凑单满减，提升购买频次</td></tr>
+<tr><td>重要保持客户</td><td>曾经高频但很久没来</td><td>召回推送、老客专享价</td></tr>
+<tr><td>一般挽留客户</td><td>不来也不买</td><td>低成本触达（短信/邮件），不投入太多</td></tr>
+</table>
+</div>
+
+<!-- ============================ Day7 其他 ============================ -->
+<h2 id="day7">Day7 · ADS 应用层③：活跃分布 + 复购率</h2>
+
+<div class="card">
+<h3>这一步在干嘛？</h3>
+<p>补充两个电商常用分析：每小时活跃分布（看什么时间人最多）、复购率（买过的人里有多少会再买）。</p>
+<p>打开 <code>sql/06_ads_other.sql</code>，全选执行。</p>
+</div>
+
+<div class="card">
+<h3>核心 SQL 解释</h3>
+
+<h4>24小时活跃分布</h4>
+<pre><code>SELECT hr, COUNT(*) AS pv_total, COUNT(DISTINCT user_id) AS uv
+FROM dwd_user_behavior
+WHERE behavior_type = 'pv'
+GROUP BY hr
+ORDER BY hr;</code></pre>
+<p>按小时分组，看每个小时的浏览 UV。真实数据应该是<b>晚 8-10 点高峰</b>，运营可以在高峰时段推送活动。</p>
+
+<h4>整体复购率</h4>
+<pre><code>WITH buy_user AS (
+    SELECT user_id, COUNT(*) AS buy_times
+    FROM dwd_user_behavior WHERE behavior_type='buy'
+    GROUP BY user_id
+)
+SELECT
+    COUNT(*) AS 购买用户数,
+    SUM(CASE WHEN buy_times >= 2 THEN 1 ELSE 0 END) AS 复购用户数,
+    ROUND(SUM(CASE WHEN buy_times >= 2 THEN 1 ELSE 0 END) * 100 / COUNT(*), 2) AS 复购率pct
+FROM buy_user;</code></pre>
+<p><b>复购率 = 购买 ≥2 次的用户数 / 买过的用户数</b>。这是电商健康度的核心指标——拉新成本高，复购才是利润来源。</p>
+<p><code>WITH ... AS</code>：CTE（公共表表达式），把子查询起个名字复用，代码更清晰。</p>
+</div>
+
+<!-- ============================ Day8 可视化 ============================ -->
+<h2 id="day8">Day8 · 用 Python 画交互图表</h2>
+
+<div class="card">
+<h3>改密码</h3>
+<p>记事本打开 <code>scripts/visualization.py</code>，第 25 行的密码改成你自己的（和 load_data.py 一样）。</p>
+</div>
+
+<div class="card">
+<h3>跑可视化</h3>
+<pre><code>cd C:\Users\wut98\Desktop\ecommerce-dw
+python scripts/visualization.py</code></pre>
+<p>跑完 <code>output/</code> 文件夹下会有 4 个 HTML 文件，双击用浏览器打开，是可交互的图表（鼠标悬停看数值）。</p>
+</div>
+
+<div class="card">
+<h3>visualization.py 核心逻辑</h3>
+
+<h4>连数据库 + 查数</h4>
+<pre><code>conn = pymysql.connect(**DB_CONFIG)
+cursor = conn.cursor(pymysql.cursors.DictCursor)  # DictCursor：结果是字典，能用列名取值
+
+def query(sql):
+    cursor.execute(sql)
+    return cursor.fetchall()</code></pre>
+<p><code>DictCursor</code>：让查询结果返回字典列表（<code>[{'hr':0,'uv':6080}, ...]</code>），这样写 <code>r['uv']</code> 就能取值，比数字下标 <code>r[1]</code> 清晰。</p>
+
+<h4>画漏斗图</h4>
+<pre><code>rows = query("SELECT uv_pv, uv_fav_cart, uv_buy FROM ads_funnel_overall")[0]
+funnel = (
+    Funnel()
+    .add('用户数', [('浏览', rows['uv_pv']), ('收藏/加购', rows['uv_fav_cart']), ('购买', rows['uv_buy'])])
+    .set_global_opts(title_opts=opts.TitleOpts(title='用户转化漏斗（UV口径）'))
+)
+funnel.render('output/01_funnel.html')</code></pre>
+<p>pyecharts 的套路：<code>图表类型().add(数据).set_global_opts(配置).render(输出路径)</code>。所有图表都这个结构，换类型和数据就行。</p>
+</div>
+
+<!-- ============================ 面试话术 ============================ -->
+<h2 id="interview">🎤 面试话术速查</h2>
+
+<div class="card">
+<h3>项目一句话介绍（30秒版）</h3>
+<p>"我基于淘宝用户行为数据集（50万行），独立完成了 ODS-DWD-DWS-ADS 四层数仓建设。用 Python 批量导入数据，SQL 实现了 RFM 用户分层和转化漏斗分析，最后用 pyecharts 输出了 4 张可视化图表，为运营提供了用户分群和转化优化的策略依据。"</p>
+</div>
+
+<div class="card">
+<h3>你的真实数据（直接背）</h3>
+<table>
+<tr><th>指标</th><th>数值</th></tr>
+<tr><td>数据量</td><td>50 万行用户行为</td></tr>
+<tr><td>整体转化率</td><td>约 24%</td></tr>
+<tr><td>重要价值客户占比</td><td>25.5%</td></tr>
+<tr><td>重要发展客户</td><td>14.5%</td></tr>
+<tr><td>重要保持客户</td><td>14.5%</td></tr>
+<tr><td>一般挽留客户</td><td>45.5%</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>高频面试问题 + 标准答案</h3>
+
+<h4>Q1：为什么要做数仓分层？</h4>
+<p>A：① 解耦，底层数据变了不影响上层分析；② 复用，DWS 层建一次所有分析都能用，不用每次扫原始数据；③ 口径统一，大家从同一张汇总表取数，不会各算各的；④ 出问题能沿血缘定位是哪一层的错。</p>
+
+<h4>Q2：ODS 和 DWD 的区别？</h4>
+<p>A：ODS 是原始数据原样落地，不做加工，可能有脏数据；DWD 是清洗后的明细层，做了去脏、去重、维度退化，<b>粒度不变</b>（还是一行一个行为），但更干净好用。</p>
+
+<h4>Q3：DWD 和 DWS 的区别？</h4>
+<p>A：DWD 是明细层，一行一个行为，50 万行；DWS 是汇总层，按用户/商品/天聚合，行数少很多。DWD 做清洗不做聚合，DWS 做聚合。</p>
+
+<h4>Q4：为什么转化率用 UV 不用 PV？</h4>
+<p>A：业务关心"多少人"完成转化。如果用 PV，一个用户刷 100 次页面会把浏览量放大 100 倍，转化率会被严重低估。UV 去重后才反映真实的用户转化。</p>
+
+<h4>Q5：RFM 没有 M 怎么办？</h4>
+<p>A：主动说明数据局限。如果有订单金额表，可以 LEFT JOIN 进来取 SUM(amount) 补齐 M；没有金额时，R+F 二维分层是业内常见折中。不要假装算了 M。</p>
+
+<h4>Q6：NTILE(5) 是什么？</h4>
+<p>A：窗口函数，把排序后的数据尽量均分成 5 组，每组编号 1-5。如果行数不能整除，前面的组会多 1 行。数据量特别小或有大量并列值时，可能切分不均匀，可以改用 CASE WHEN 自定义阈值。</p>
+
+<h4>Q7：你这个项目用了 Hive/Spark 吗？</h4>
+<p>A：没有。50 万行数据 MySQL 单机就够了，Hadoop/Spark 是解决 TB/PB 级数据的。我用 MySQL 实现了完整的 ODS-DWD-DWS-ADS 分层建模，HiveQL 和 MySQL 语法高度相似，数据规模上来后迁移成本很低。（然后把之前背的 Hive/Spark 概念说一下）</p>
+</div>
+
+<!-- ============================ 报错排查 ============================ -->
+<h2 id="faq">❌ 常见报错排查</h2>
+
+<div class="card">
+<h3>1. Unknown database 'ecommerce_dw'</h3>
+<p><b>原因</b>：还没建库。<b>解决</b>：先在 DBeaver 执行 01_create_ods.sql。</p>
+
+<h3>2. Access denied for user 'root'</h3>
+<p><b>原因</b>：密码不对。<b>解决</b>：检查 load_data.py 第 28 行和 visualization.py 第 25 行的密码，改成你自己的。</p>
+
+<h3>3. UnicodeEncodeError: 'latin-1' codec can't encode</h3>
+<p><b>原因</b>：密码还是中文占位符 '改成你的MySQL密码'。<b>解决</b>：改成你的真实密码。</p>
+
+<h3>4. Table 'ecommerce_dw.ads_xxx' doesn't exist</h3>
+<p><b>原因</b>：漏跑了某个 SQL 脚本。<b>解决</b>：检查 sql 文件夹 01-06 是不是都执行过了。</p>
+
+<h3>5. can't open file 'scripts/visualization.py'</h3>
+<p><b>原因</b>：当前目录不对。<b>解决</b>：先 <code>cd C:\Users\wut98\Desktop\ecommerce-dw</code> 再跑。</p>
+
+<h3>6. 左边看不到新建的表</h3>
+<p><b>原因</b>：DBeaver 没刷新。<b>解决</b>：右键"数据库"→ 刷新，或按 F5。</p>
+</div>
+
+<div class="good" style="text-align:center;margin-top:30px">
+<b>🎉 恭喜！你已经完整跑通了一个电商数仓项目。</b><br>
+把这个教程多看两遍，每一步在干嘛弄明白，这个项目就是你的了。<br>
+简历项目部分的数字直接用上面"你的真实数据"表里的数值。
+</div>
+
+</div>
+</body>
+</html>
