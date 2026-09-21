@@ -79,10 +79,9 @@ SELECT 'dws_user_summary', COUNT(*) FROM dws_user_summary;
 SELECT * FROM dws_user_summary WHERE total_buy > 0 ORDER BY total_buy DESC LIMIT 10;
 
 -- ============================================================
--- 知识点：
--- 1) 技巧 SUM(behavior_type = 'pv')：MySQL 里条件成立=1 不成立=0，
---    比 SUM(CASE WHEN ... THEN 1 ELSE 0 END) 简洁。写标准 SQL 或 Hive
---    时仍要用 CASE WHEN，两种写法都要会。
--- 2) DWS 的价值：复用。上面三张表建一次，漏斗、RFM、留存全都从它们取数，
---    不用每次扫 100 万行明细，这就是分层的性能和口径统一意义。
+-- 实现说明：
+-- 1) SUM(behavior_type = 'pv')：MySQL 中条件成立=1 不成立=0，
+--    比 SUM(CASE WHEN ... THEN 1 ELSE 0 END) 简洁。
+-- 2) DWS 价值：三张汇总表建一次，漏斗、RFM、留存等分析全都取数，
+--    避免反复扫描明细层，同时保证口径统一。
 -- ============================================================
